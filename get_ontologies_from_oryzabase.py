@@ -8,8 +8,8 @@ import datetime
 import re
 
 import pandas as pd
-from owlready2 import get_ontology
-from retrying import retry
+
+from onto_wrapper import Onto
 
 config = {
     "url": {
@@ -45,9 +45,9 @@ def main():
     print("Done")
 
     onto_obj = {
-        "Gene Ontology": try_to_load_owl(config["url"]["go_owl"]),
-        "Plant Ontology": try_to_load_owl(config["url"]["po_owl"]),
-        "Trait Ontology": try_to_load_owl(config["url"]["to_owl"])
+        "Gene Ontology": Onto(config["url"]["go_owl"]),
+        "Plant Ontology": Onto(config["url"]["po_owl"]),
+        "Trait Ontology": Onto(config["url"]["to_owl"])
     }
 
     df_dict = {}
@@ -58,7 +58,7 @@ def main():
         onto = config["table"][table_name]["onto"]
 
         print(f"Processing {table_name} ...")
-        df_dict[table_name] = extract_oryzabase_onto_table(
+        df = extract_oryzabase_onto_table(
             oryzabase_gene_list=oryzabase_gene_list,
             id_column_name=gene,
             id_regex=config["gene_id_regex"][gene],
@@ -66,6 +66,11 @@ def main():
             onto_regex=config["onto_id_regex"][onto],
             onto=onto_obj[onto]
         )
+
+        if "GO" in table_name:
+            df["Category"] = df["OntoID"].map(lambda x: get_go_category(x, onto_obj[onto]))
+
+        df_dict[table_name] = df
         print("Done")
 
     print(f"Writing to {config['out_path']} ...")
@@ -73,67 +78,6 @@ def main():
         for df_name, df in df_dict.items():
             df.to_excel(writer, df_name, index=False)
     print("Done")
-
-
-def update_onto_id(onto_id, onto):
-    '''
-    Check if a ontology ID is obsolete,
-    if it is, replace it with the new one.
-    '''
-
-    search_result_list = onto.search(id=onto_id)
-    if len(search_result_list) != 1:
-        search_result_list = onto.search(hasAlternativeId=onto_id)
-        if len(search_result_list) != 1:
-            raise Exception(f"error on searching {onto_id}")
-    elif len(search_result_list[0].id) != 1:
-        raise Exception(f"error on getting ID of {ancestor}")
-
-    return search_result_list[0].id[0]
-
-
-def get_ancestor_id_list(onto_id, onto):
-    '''
-    Given a ontology ID (e.g. GO:0080050),
-    extract a list of ontology ID of its ancestors from owlready2 ontology object.
-    '''
-    search_result_list = onto.search(id=onto_id)
-    if len(search_result_list) != 1:
-        raise Exception(f"error on searching {onto_id}")
-    ancestor_list = search_result_list[0].ancestors()
-    ancestor_id_list = list()
-    for ancestor in ancestor_list:
-        if hasattr(ancestor, "id") and len(ancestor.id) == 1:
-            ancestor_id_list.append(ancestor.id[0])
-        else:
-            continue
-    return ancestor_id_list
-
-
-def extend_onto_id_list(onto_id_list, onto):
-    '''
-    Given a ontology ID list (e.g. ["GO:0080050", "GO:0010468"])
-    return a list appended with ancestor ontology ID.
-    '''
-    extended_list = [update_onto_id(onto_id, onto) for onto_id in onto_id_list]
-    for onto_id in extended_list.copy():
-        ancestor_id_list = get_ancestor_id_list(onto_id, onto)
-        extended_list.extend(ancestor_id_list)
-    return sorted(list(set(extended_list)))
-
-
-def get_onto_label(onto_id, onto):
-    '''
-    Given a ontology ID,
-    return it's label.
-    '''
-    search_result_list = onto.search(id=onto_id)
-    if len(search_result_list) != 1:
-        raise Exception(f"error on searching {onto_id}")
-    label_list = list(set(search_result_list[0].label))
-    if len(label_list) != 1:
-        raise Exception(f"error on getting the label of {onto_id}")
-    return label_list[0]
 
 
 def id_extractor(id_regex):
@@ -158,7 +102,7 @@ def extract_oryzabase_onto_table(
         - gene ID regex
         - name of ontology id containing column
         - ontology id regex
-        - owlready2 ontology object
+        - Onto instence from onto_wrapper.py
 
     Extract a clean long table from oryzabase_gene_list that containing three columns:
         - gene ID (duplicated)
@@ -175,19 +119,17 @@ def extract_oryzabase_onto_table(
 
     # For each row, extract gene IDs and onto IDs into lists.
     # e.g.   "geneA,geneB" | "GO:1;GO:2"  ->  ["geneA", "geneB"]| ["GO:1", "GO:2"]
-    onto_ex = id_extractor(onto_regex)
-    id_onto[onto_column_name] = id_onto[onto_column_name].map(onto_ex)
-    id_ex = id_extractor(id_regex)
-    id_onto[id_column_name] = id_onto[id_column_name].map(id_ex)
+    id_onto[onto_column_name] = id_onto[onto_column_name].map(id_extractor(onto_regex))
+    id_onto[id_column_name] = id_onto[id_column_name].map(id_extractor(id_regex))
 
     # Extend onto ID lists.
-    id_onto[onto_column_name] = id_onto[onto_column_name].map(lambda x: extend_onto_id_list(x, onto))
+    id_onto[onto_column_name] = id_onto[onto_column_name].map(onto.extend_onto_id_list)
 
     # Explode to long table.
     id_onto = id_onto.explode(onto_column_name).explode(id_column_name)
 
     # Fetch ontology labels and sort by gene IDs.
-    id_onto["Description"] = id_onto[onto_column_name].map(lambda x: get_onto_label(x, onto))
+    id_onto["Description"] = id_onto[onto_column_name].map(onto.get_onto_label)
     id_onto = id_onto.sort_values(by=id_column_name, ascending=True)
 
     # Unifiy column names.
@@ -196,12 +138,19 @@ def extract_oryzabase_onto_table(
     return id_onto
 
 
-@retry
-def try_to_load_owl(owl_path_str):
-    print(f"Trying to load {owl_path_str} ...")
-    ontology = get_ontology(owl_path_str).load()
-    print("Done")
-    return ontology
+def get_go_category(go_id, onto):
+    '''
+    Determine which category a GO ID belongs to.
+    '''
+
+    if onto.has_ancestor(go_id, "GO:0008150"):
+        return "BP"
+    elif onto.has_ancestor(go_id, "GO:0003674"):
+        return "MF"
+    elif onto.has_ancestor(go_id, "GO:0005575"):
+        return "MF"
+    else:
+        return None
 
 
 if __name__ == "__main__":

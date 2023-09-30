@@ -3,7 +3,7 @@
 ## Requirements
 
 ```bash
-python3 -m pip install pandas owlready2 retrying
+python3 -m pip install pandas owlready2 retrying openpyxl
 ```
 
 ## Fetch Ontologies from Oryzabase
