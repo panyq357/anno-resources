@@ -1,4 +1,3 @@
-# Oryzabase Ontologies
 
 ## Requirements
 
