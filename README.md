@@ -6,10 +6,20 @@
 python3 -m pip install pandas owlready2 retrying openpyxl
 ```
 
-## Fetch Ontologies from Oryzabase
+## Fetch ontologies from Oryzabase
+
+- [Oryzabase annotation](https://shigen.nig.ac.jp/rice/oryzabase/download/gene)
 
 ```bash
 python3 get_ontologies_from_oryzabase.py
+```
+
+## Clean JGI Sitalica annotation info
+
+- [JGI Sitalica annotation](https://data.jgi.doe.gov/refine-download/phytozome?organism=Sitalica)
+
+```bash
+python3 clean_jgi_si_annotation.py
 ```
 
 ## Enrichment Analysis using clusterProfiler

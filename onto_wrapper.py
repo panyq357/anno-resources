@@ -1,9 +1,11 @@
 # description: A wrapper class for common operation of ontologies
 # date: 2023-09-30
 # author: panyq357
+
+import re
+
 from owlready2 import get_ontology
 from retrying import retry
-
 
 class Onto():
 
@@ -105,4 +107,69 @@ class Onto():
             return True
         else:
             return False
+
+    def get_clean_onto_table(self, id_to_onto, id_regex, onto_regex):
+        '''
+        By specifying the following:
+            - A two column DataFrame, 1st column contains gene ID, 2nd column contains Onto ID
+            - Gene ID regex
+            - Ontology id regex
+            - Onto instence from onto_wrapper.py
+
+        Extract a clean long table from id_to_onto that containing three columns:
+            - Gene ID (duplicated)
+            - Ontology ID of corresponding gene
+            - Description of ontology ID
+
+        This DataFrame is suitable for enrichment analysis using R package: clusterProfiler.
+        '''
+
+        def id_extractor(id_regex):
+            '''
+            Generate a function, which do something like this:
+                "GeneA,GeneB|GeneC" -> ["GeneA", "GeneB", "GeneC"]
+            '''
+            id_regex = re.compile(id_regex)
+            def _id_ex(str_containing_id):
+                id_list = id_regex.findall(str_containing_id)
+                return list(set(id_list))
+            return _id_ex
+
+        id_to_onto.columns = ["GeneID", "OntoID"]
+
+        # Pre-filter rows of two column DataFrame.
+        row_mask = (id_to_onto["GeneID"].str.contains(id_regex, na=False) &
+            id_to_onto["OntoID"].str.contains(onto_regex, na=False))
+        id_to_onto = id_to_onto.loc[row_mask,:]
+
+        # For each row, extract gene IDs and onto IDs into lists.
+        # e.g.   "geneA,geneB" | "GO:1;GO:2"  ->  ["geneA", "geneB"]| ["GO:1", "GO:2"]
+        id_to_onto.loc[:,"GeneID"] = id_to_onto["GeneID"].map(id_extractor(id_regex))
+        id_to_onto.loc[:,"OntoID"] = id_to_onto["OntoID"].map(id_extractor(onto_regex))
+
+        # Extend onto ID lists.
+        id_to_onto.loc[:,"OntoID"] = id_to_onto["OntoID"].map(self.extend_onto_id_list)
+
+        # Explode to long table.
+        id_to_onto = id_to_onto.explode("GeneID").explode("OntoID")
+
+        # Fetch ontology labels and sort by gene IDs.
+        id_to_onto["Description"] = id_to_onto["OntoID"].map(self.get_onto_label)
+        id_to_onto = id_to_onto.sort_values(by="GeneID", ascending=True)
+
+        return id_to_onto
+
+    def get_go_category(self, go_id):
+        '''
+        Determine which category a GO ID belongs to.
+        '''
+
+        if self.has_ancestor(go_id, "GO:0008150"):
+            return "BP"
+        elif self.has_ancestor(go_id, "GO:0003674"):
+            return "MF"
+        elif self.has_ancestor(go_id, "GO:0005575"):
+            return "CC"
+        else:
+            return None
 
