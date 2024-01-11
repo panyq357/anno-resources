@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Date: 2023-07-10
-# Author: panyq
-# Description: Make GO, PO, TO annotation long table from oryzabase downloadable file.
+# Date: 2024-01-11
+# Author: panyq357
+# Description: Make GO annotation long table from JGI annotation info file.
+
+from pathlib import Path
 
 import pandas as pd
 
 from onto_wrapper import Onto
 
 config = {
-    "jgi_si_annotation": "~/Downloads/Sitalica_312_v2.2.annotation_info.txt",
+    "jgi_si_annotation": "/mnt/d/PublicData/JGI/Setaria_italica_v2.2/rawdata/Sitalica_312_v2.2.annotation_info.txt",
     "go_owl": "http://purl.obolibrary.org/obo/go.owl",
     "gene_id_regex": r"Seita.[1-9]G\d{6}",
     "go_id_regex": r"GO:\d{7}",
-    "out_path": "jgi-si-go-v2.2.xlsx"
+    "out_path": "results/jgi-si-go-v2.2.xlsx"
 }
 
 def main():
@@ -32,8 +34,14 @@ def main():
 
     df["Category"] = df["OntoID"].map(go_onto.get_go_category)
 
-    print(f"Writing to {config['out_path']} ...")
-    df.to_excel(config['out_path'], index=False)
+    out_path = Path(config['out_path'])
+
+    print(f"Writing to {str(out_path)} ...")
+
+    if not out_path.parent.exists():
+        out_path.parent.mkdir(parents=True)
+
+    df.to_excel(out_path, index=False)
     print("Done")
 
 

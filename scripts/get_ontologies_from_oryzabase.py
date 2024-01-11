@@ -5,6 +5,7 @@
 # Description: Make GO, PO, TO annotation long table from oryzabase downloadable file.
 
 import datetime
+from pathlib import Path
 import re
 
 import pandas as pd
@@ -34,9 +35,9 @@ config = {
         "RAP_TO": {"gene": "RAP ID", "onto": "Trait Ontology"},
         "MSU_GO": {"gene": "MSU ID", "onto": "Gene Ontology"},
         "MSU_PO": {"gene": "MSU ID", "onto": "Plant Ontology"},
-        "MSU_TO": {"gene": "MSU ID", "onto": "Trait Ontology"},
+        "MSU_TO": {"gene": "MSU ID", "onto": "Trait Ontology"}
     },
-    "out_path": f"oryzabase-ontologies-{str(datetime.date.today())}.xlsx"
+    "out_path": f"results/oryzabase-ontologies.xlsx"
 }
 
 def main():
@@ -73,8 +74,13 @@ def main():
         df_dict[table_name] = df
         print("Done")
 
-    print(f"Writing to {config['out_path']} ...")
-    with pd.ExcelWriter(config["out_path"]) as writer:
+    out_path = Path(config['out_path'])
+    print(f"Writing to {str(out_path)} ...")
+
+    if not out_path.parent.exists():
+        out_path.parent.mkdir(parents=True)
+
+    with pd.ExcelWriter(out_path) as writer:
         for df_name, df in df_dict.items():
             df.to_excel(writer, df_name, index=False)
     print("Done")

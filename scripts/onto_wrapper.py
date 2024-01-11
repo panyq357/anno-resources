@@ -162,6 +162,7 @@ class Onto():
     def get_go_category(self, go_id):
         '''
         Determine which category a GO ID belongs to.
+        Only valid with "GO.owl".
         '''
 
         if self.has_ancestor(go_id, "GO:0008150"):
