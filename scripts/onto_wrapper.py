@@ -92,10 +92,7 @@ class Onto():
 
         label_list = list(set(search_result_list[0].label))
 
-        if len(label_list) != 1:
-            raise Exception(f"error on getting the label of {onto_id}")
-
-        return label_list[0]
+        return ", ".join(label_list)
 
     def has_ancestor(self, onto_id, ancestor_id):
         '''
