@@ -8,7 +8,7 @@ python3 -m pip install pandas owlready2 retrying openpyxl
 
 ## Fetch ontologies from Oryzabase
 
-- [Oryzabase annotation](https://shigen.nig.ac.jp/rice/oryzabase/download/gene)
+Just run this, annotation will be downloaded from [Oryzabase annotation](https://shigen.nig.ac.jp/rice/oryzabase/download/gene).
 
 ```bash
 python3 scripts/get_ontologies_from_oryzabase.py
@@ -16,10 +16,29 @@ python3 scripts/get_ontologies_from_oryzabase.py
 
 ## Clean JGI Sitalica annotation info
 
-- [JGI Sitalica annotation](https://data.jgi.doe.gov/refine-download/phytozome?organism=Sitalica)
+First, download `Sitalica_312_v2.2.annotation_info.txt` from [JGI Sitalica annotation](https://data.jgi.doe.gov/refine-download/phytozome?organism=Sitalica)
+
+Then replace the `jgi_si_annotation` path in `scripts/clean_jgi_si_annotation.py`.
+
+Finally, run this.
 
 ```bash
 python3 scripts/clean_jgi_si_annotation.py
+```
+
+## Clean GO annotation from TAIR
+
+First download GO annotation from TAIR
+
+```bash
+aria2c "https://www.arabidopsis.org/api/download-files/download?filePath=GO_and_PO_Annotations/Gene_Ontology_Annotations/ATH_GO_GOSLIM.txt.gz"
+gzip -d ATH_GO_GOSLIM.txt.gz
+```
+
+Then run the script.
+
+```bash
+python3 scripts/clean_ath_go.py
 ```
 
 ## Enrichment Analysis using clusterProfiler
