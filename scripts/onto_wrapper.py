@@ -154,7 +154,7 @@ class Onto():
         id_to_onto["Description"] = id_to_onto["OntoID"].map(self.get_onto_label)
         id_to_onto = id_to_onto.sort_values(by="GeneID", ascending=True)
 
-        return id_to_onto
+        return id_to_onto.drop_duplicates()
 
     def get_go_category(self, go_id):
         '''
