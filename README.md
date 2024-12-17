@@ -41,6 +41,12 @@ Then run the script.
 python3 scripts/clean_ath_go.py
 ```
 
+## TAIR Gene Search Results
+
+in [TAIR Gene Search](https://www.arabidopsis.org/search/genes) page, use different chromosome as filter,
+after clicking "Submit Query" bottom and search results displayed, click "Download All" bottom to download result tsv file.
+
+
 ## Enrichment Analysis using clusterProfiler
 
 ```r
