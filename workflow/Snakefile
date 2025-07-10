@@ -1,0 +1,31 @@
+configfile: "config.yaml"
+
+
+rule all:
+    input:
+        "results/oryzabase.MSU_GO.term_to_gene.tsv.gz",
+        "results/ath_go.term_to_gene.tsv.gz",
+        "results/jgi_si_go.term_to_gene.tsv.gz"
+
+
+rule clean_oryzabase_ontology:
+    output:
+        expand("results/oryzabase.{gene_id}_{onto_id}.{data_type}.tsv.gz",
+            gene_id = ["RAP", "MSU"],
+            onto_id = ["GO", "TO", "PO"],
+            data_type = ["term_to_gene", "term_to_description"]
+        )
+    script:
+        "scripts/clean_oryzabase_ontology.py"
+
+
+rule clean_ontology:
+    input:
+        lambda w: config["clean_ontology_jobs"][w.name]["file"]
+    output:
+        term_to_gene = "results/{name}.term_to_gene.tsv.gz",
+        term_to_description = "results/{name}.term_to_description.tsv.gz"
+    params:
+        lambda w: config["clean_ontology_jobs"][w.name]
+    script:
+        "scripts/clean_ontology.py"

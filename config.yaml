@@ -1,0 +1,17 @@
+clean_ontology_jobs:
+  ath_go:
+    owl: "http://purl.obolibrary.org/obo/go.owl"
+    file: "rawdata/ATH_GO_GOSLIM.txt"
+    reader: "lambda x: pd.read_table(x, comment='!', header=None)"
+    gene_id_col: 0
+    onto_id_col: 5
+    gene_id_regex: "AT[1-5CM]G[0-9]{5}"
+    onto_id_regex: "GO:[0-9]{7}"
+  jgi_si_go:
+    owl: "http://purl.obolibrary.org/obo/go.owl"
+    file: "rawdata/Sitalica_312_v2.2.annotation_info.txt"
+    reader: "lambda x: pd.read_table(x)"
+    gene_id_col: "locusName"
+    onto_id_col: "GO"
+    gene_id_regex: "Seita.[1-9]G[0-9]{6}"
+    onto_id_regex: "GO:[0-9]{7}"

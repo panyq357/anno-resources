@@ -37,7 +37,7 @@ config = {
         "MSU_PO": {"gene": "MSU ID", "onto": "Plant Ontology"},
         "MSU_TO": {"gene": "MSU ID", "onto": "Trait Ontology"}
     },
-    "out_path": f"results/oryzabase-ontologies.xlsx"
+    "out_dir": "results"
 }
 
 def main():
@@ -62,27 +62,37 @@ def main():
         id_to_onto = oryzabase_gene_list[[gene, onto]]
 
         print(f"Processing {table_name} ...")
-        df = onto_obj[onto].get_clean_onto_table(
+        term_to_gene = onto_obj[onto].get_clean_onto_table(
             id_to_onto,
             id_regex=config["gene_id_regex"][gene],
             onto_regex=config["onto_id_regex"][onto],
-        )
+        )[["OntoID", "GeneID"]]
+
+        term_to_description = pd.DataFrame({"OntoID": term_to_gene["OntoID"].unique()})
+        term_to_description["Description"] = term_to_description["OntoID"].map(onto_obj[onto].get_onto_label)
 
         if "GO" in table_name:
-            df["Category"] = df["OntoID"].map(onto_obj[onto].get_go_category)
+            term_to_description["Description"] = term_to_description["Description"] + " (" + term_to_description["OntoID"].map(onto_obj[onto].get_go_category) + ")"
 
-        df_dict[table_name] = df
+        term_to_description = term_to_description.sort_values("OntoID")
+
+        df_dict[table_name] = {
+            "term_to_gene": term_to_gene,
+            "term_to_description": term_to_description
+        }
         print("Done")
 
-    out_path = Path(config['out_path'])
-    print(f"Writing to {str(out_path)} ...")
 
-    if not out_path.parent.exists():
-        out_path.parent.mkdir(parents=True)
+    out_dir = Path(config['out_dir'])
+    print(f"Writing to {str(out_dir)} ...")
 
-    with pd.ExcelWriter(out_path) as writer:
-        for df_name, df in df_dict.items():
-            df.to_excel(writer, df_name, index=False)
+    if not out_dir.exists():
+        out_dir.mkdir(parents=True)
+
+    for k1, v1 in df_dict.items():
+        for k2, v2 in v1.items():
+            v2.to_csv(out_dir / f"oryzabase.{k1}.{k2}.tsv.gz", sep="\t", header = False, index = False)
+
     print("Done")
 
 if __name__ == "__main__":

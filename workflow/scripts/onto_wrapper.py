@@ -1,4 +1,4 @@
-# description: A wrapper class for common operation of ontologies
+# description: A wrapper class for common operation of ontology
 # date: 2023-09-30
 # author: panyq357
 
@@ -18,6 +18,7 @@ class Onto():
         ontology = get_ontology(owl_path_str).load()
         print("Done")
         return ontology
+
 
     def update_onto_id(self, onto_id):
         '''
@@ -79,6 +80,7 @@ class Onto():
             extended_list.extend(ancestor_id_list)
         return sorted(list(set(extended_list)))
 
+
     def get_onto_label(self, onto_id):
         '''
         Given a ontology ID,
@@ -94,6 +96,7 @@ class Onto():
 
         return ", ".join(label_list)
 
+
     def has_ancestor(self, onto_id, ancestor_id):
         '''
         Given a ontology ID, check if it has a specific ancestor.
@@ -104,6 +107,7 @@ class Onto():
             return True
         else:
             return False
+
 
     def get_clean_onto_table(self, id_to_onto, id_regex, onto_regex):
         '''
@@ -120,6 +124,7 @@ class Onto():
 
         This DataFrame is suitable for enrichment analysis using R package: clusterProfiler.
         '''
+
 
         def id_extractor(id_regex):
             '''
@@ -151,10 +156,10 @@ class Onto():
         id_to_onto = id_to_onto.explode("GeneID").explode("OntoID")
 
         # Fetch ontology labels and sort by gene IDs.
-        id_to_onto["Description"] = id_to_onto["OntoID"].map(self.get_onto_label)
-        id_to_onto = id_to_onto.sort_values(by="GeneID", ascending=True)
+        id_to_onto = id_to_onto.sort_values(by=["GeneID", "OntoID"], ascending=True)
 
         return id_to_onto.drop_duplicates()
+
 
     def get_go_category(self, go_id):
         '''
