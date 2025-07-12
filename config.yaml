@@ -15,3 +15,11 @@ clean_ontology_jobs:
     onto_id_col: "GO"
     gene_id_regex: "Seita.[1-9]G[0-9]{6}"
     onto_id_regex: "GO:[0-9]{7}"
+  iwgsc_v2_1_go:
+    owl: "http://purl.obolibrary.org/obo/go.owl"
+    file: "rawdata/iwgsc_refseqv2.1_functional_annotation.zip"
+    reader: "lambda x: pd.read_csv(x)"
+    gene_id_col: "g2.identifier"
+    onto_id_col: "f.name"
+    gene_id_regex: "TraesCS\\w+"
+    onto_id_regex: "GO:[0-9]{7}"

@@ -4,8 +4,7 @@ configfile: "config.yaml"
 rule all:
     input:
         "results/oryzabase.MSU_GO.term_to_gene.tsv.gz",
-        "results/ath_go.term_to_gene.tsv.gz",
-        "results/jgi_si_go.term_to_gene.tsv.gz"
+        [f"results/{name}.term_to_gene.tsv.gz" for name in config["clean_ontology_jobs"]]
 
 
 rule clean_oryzabase_ontology:
@@ -27,5 +26,7 @@ rule clean_ontology:
         term_to_description = "results/{name}.term_to_description.tsv.gz"
     params:
         lambda w: config["clean_ontology_jobs"][w.name]
+    wildcard_constraints:
+        name = "[^.]+"
     script:
         "scripts/clean_ontology.py"
